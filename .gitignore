@@ -2,11 +2,14 @@
 node_modules/
 .pnp
 .pnp.js
+# lockfiles gérés uniquement à la racine (npm workspaces)
+apps/api/package-lock.json
+apps/web/package-lock.json
 
 # Next.js
-web/.next/
-web/out/
-web/build-output.txt
+apps/web/.next/
+apps/web/out/
+apps/web/build-output.txt
 .vercel
 
 # Env / secrets
@@ -29,11 +32,9 @@ Thumbs.db
 .idea/
 
 # Prisma
-api/prisma/*.db
+apps/api/prisma/*.db
 
 # Build
 dist/
 build/
 coverage/
-api/package-lock.json
-web/package-lock.json

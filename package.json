@@ -3,16 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "workspaces": [
-    "api",
-    "web"
+    "apps/api",
+    "apps/web"
   ],
   "scripts": {
-    "dev:api": "npm run dev --workspace=api",
+    "dev:api": "npm run dev --workspace=couture-dynamic-pro-api",
     "dev:web": "npm run dev --workspace=web",
-    "build": "npm run build --workspace=api && npm run build --workspace=web",
-    "lint": "npm run lint --workspace=api && npm run lint --workspace=web",
-    "typecheck": "npm run typecheck --workspace=api && npm run typecheck --workspace=web",
-    "test": "npm run test --workspace=api && npm run test --workspace=web"
+    "build": "npm run build --workspace=couture-dynamic-pro-api && npm run build --workspace=web",
+    "lint": "npm run lint --workspace=couture-dynamic-pro-api && npm run lint --workspace=web",
+    "typecheck": "npm run typecheck --workspace=couture-dynamic-pro-api && npm run typecheck --workspace=web",
+    "test": "npm run test --workspace=couture-dynamic-pro-api && npm run test --workspace=web"
   },
   "engines": {
     "node": ">=20"
