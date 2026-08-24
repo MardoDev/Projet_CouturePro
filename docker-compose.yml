@@ -1,0 +1,26 @@
+name: couture-dynamic-pro
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: couture_dynamic_pro
+    ports:
+      - "5432:5432"
+    volumes:
+      - cdp_postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - cdp_redis_data:/data
+
+volumes:
+  cdp_postgres_data:
+  cdp_redis_data:
