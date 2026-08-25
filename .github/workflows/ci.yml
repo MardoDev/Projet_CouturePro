@@ -9,6 +9,25 @@ on:
 jobs:
   quality-gates:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: couture_dynamic_pro
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U user"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://user:password@localhost:5432/couture_dynamic_pro
+
     steps:
       - uses: actions/checkout@v4
 
@@ -24,5 +43,8 @@ jobs:
       - run: npm run typecheck
 
       - run: npm run build
+
+      - name: Applique les migrations Prisma (base de test CI)
+        run: npm run db:migrate:deploy --workspace=couture-dynamic-pro-api
 
       - run: npm run test

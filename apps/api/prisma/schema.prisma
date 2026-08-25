@@ -1,0 +1,399 @@
+// Schéma Prisma — Couture Dynamic Pro
+//
+// Traduction directe de docs/etude-merise.md (MLD section 4, FK/ON DELETE
+// section 5, dictionnaire section 8). Ne pas modifier une cardinalité, une
+// nullabilité ou une règle ON DELETE sans mettre à jour l'étude Merise en
+// premier — ce fichier est un dérivé, pas la source de vérité.
+//
+// Conventions techniques (choix d'implémentation, pas des règles métier) :
+// - Identifiants : cuid() (pas d'extension PostgreSQL requise).
+// - Chaque champ est mappé (@map) sur le nom de colonne exact du MLD pour
+//   rester traçable 1:1 avec l'étude Merise.
+// - Les champs marqués "NULL" dans le MLD sont nullable ici ; les champs
+//   texte décoratifs sans rôle métier critique (description, cover_url...)
+//   sont nullable par défaut prudent — resserrer si Phase 4 l'exige.
+// - `currency` (char(3)) n'a volontairement AUCUNE valeur par défaut : la
+//   devise est une décision métier non validée (voir GUIDE-VIBE-CODING.md).
+// - Contraintes CHECK (montants/quantités >= 0, email en minuscules) : voir
+//   prisma/migrations/.../migration.sql, ajoutées à la main après le
+//   `prisma migrate dev` généré (non exprimables nativement dans ce schéma).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  ADMIN
+  CONTENT_MANAGER
+  CLIENT
+  LOGISTICS
+}
+
+enum UserStatus {
+  PENDING_EMAIL
+  PENDING_ADMIN
+  ACTIVE
+  SUSPENDED
+}
+
+/// Statut de cycle de vie partagé par COLLECTION et CATALOGUE (dictionnaire
+/// section 8 : "status catalogue").
+enum CatalogueStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+/// Statut partagé par PRODUIT et VARIANTE_PRODUIT (RG5 : "produit actif" /
+/// "variante active" ; RG12 : archivage plutôt que suppression).
+enum CatalogItemStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+/// A VALIDER : le MLD liste PANIER.status sans énumérer ses valeurs ; choix
+/// technique minimal, à confirmer si le workflow panier prévoit plus d'états.
+enum CartStatus {
+  ACTIVE
+  CONVERTED
+  ABANDONED
+}
+
+enum OrderStatus {
+  RECEIVED
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  FAILED
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+/// Prestataires de la stack CDC (CLAUDE.md) : CinetPay puis Stripe.
+enum PaymentProvider {
+  CINETPAY
+  STRIPE
+}
+
+/// A VALIDER : le MLD liste CONVERSATION.status sans énumérer ses valeurs ;
+/// choix technique minimal (RG11 ne détaille pas plus d'états).
+enum ConversationStatus {
+  OPEN
+  CLOSED
+}
+
+enum ShareNetwork {
+  WHATSAPP
+  FACEBOOK
+  INSTAGRAM
+  TWITTER_X
+  COPY
+}
+
+// ---------------------------------------------------------------------------
+// Entités (15 — voir docs/etude-merise.md section 2)
+// ---------------------------------------------------------------------------
+
+model Utilisateur {
+  id           String     @id @default(cuid())
+  /// RG1 : unique, insensible à la casse. L'unicité Postgres est
+  /// sensible à la casse — la normalisation en minuscules est appliquée
+  /// avant écriture (Phase 3) ET forcée en base par une contrainte CHECK
+  /// (email = lower(email)), voir migration.sql.
+  email        String     @unique
+  passwordHash String     @map("password_hash")
+  role         Role
+  status       UserStatus
+  firstName    String     @map("first_name")
+  lastName     String     @map("last_name")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  clientProfile          ClientProfile?
+  createdCollections     Collection[]   @relation("CollectionCreatedBy")
+  createdCatalogues      Catalogue[]    @relation("CatalogueCreatedBy")
+  createdProduits        Produit[]      @relation("ProduitCreatedBy")
+  panier                 Panier?
+  commandes               Commande[]
+  conversationsAsClient  Conversation[] @relation("ConversationClient")
+  conversationsAsStaff   Conversation[] @relation("ConversationStaff")
+  messages                Message[]
+  partages                Partage[]
+
+  @@index([role, status])
+  @@map("utilisateur")
+}
+
+model ClientProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique @map("user_id")
+  phone            String?
+  addressJson      Json?    @map("address_json")
+  consentMarketing Boolean  @default(false) @map("consent_marketing")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user Utilisateur @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("client_profile")
+}
+
+model Collection {
+  id          String          @id @default(cuid())
+  name        String
+  season      String
+  year        Int
+  description String?
+  status      CatalogueStatus
+  coverUrl    String?         @map("cover_url")
+  createdBy   String          @map("created_by")
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  creator    Utilisateur @relation("CollectionCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  catalogues Catalogue[]
+  produits   Produit[]
+
+  @@index([createdBy])
+  @@index([status])
+  @@map("collection")
+}
+
+model Catalogue {
+  id           String          @id @default(cuid())
+  collectionId String          @map("collection_id")
+  title        String
+  slug         String          @unique
+  description  String?
+  coverUrl     String?         @map("cover_url")
+  status       CatalogueStatus
+  publishedAt  DateTime?       @map("published_at")
+  pdfUrl       String?         @map("pdf_url")
+  qrUrl        String?         @map("qr_url")
+  createdBy    String          @map("created_by")
+
+  collection Collection      @relation(fields: [collectionId], references: [id], onDelete: Restrict)
+  creator    Utilisateur     @relation("CatalogueCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  pages      CataloguePage[]
+  partages   Partage[]
+
+  @@index([collectionId])
+  @@index([createdBy])
+  @@index([status])
+  @@map("catalogue")
+}
+
+model CataloguePage {
+  id          String  @id @default(cuid())
+  catalogueId String  @map("catalogue_id")
+  pageNumber  Int     @map("page_number")
+  imageUrl    String  @map("image_url")
+  altText     String? @map("alt_text")
+
+  catalogue Catalogue @relation(fields: [catalogueId], references: [id], onDelete: Cascade)
+
+  @@unique([catalogueId, pageNumber])
+  @@map("catalogue_page")
+}
+
+model Produit {
+  id           String            @id @default(cuid())
+  collectionId String?           @map("collection_id")
+  name         String
+  slug         String            @unique
+  description  String?
+  category     String
+  status       CatalogItemStatus
+  createdBy    String            @map("created_by")
+
+  collection Collection?       @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  creator    Utilisateur       @relation("ProduitCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  variantes  VarianteProduit[]
+
+  @@index([collectionId])
+  @@index([createdBy])
+  @@index([status])
+  @@map("produit")
+}
+
+model VarianteProduit {
+  id            String            @id @default(cuid())
+  productId     String            @map("product_id")
+  sku           String            @unique
+  size          String
+  color         String
+  /// Montant en unité mineure (voir dictionnaire, section 8 de l'étude
+  /// Merise) ; >= 0 imposé par contrainte CHECK (migration.sql).
+  priceAmount   Int               @map("price_amount")
+  /// A VALIDER : devise (voir GUIDE-VIBE-CODING.md) — aucune valeur par
+  /// défaut n'est fixée ici.
+  currency      String            @db.Char(3)
+  stockQuantity Int               @map("stock_quantity")
+  status        CatalogItemStatus
+
+  produit        Produit         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  lignesPanier   LignePanier[]
+  lignesCommande LigneCommande[]
+
+  @@unique([productId, size, color])
+  @@index([status])
+  @@map("variante_produit")
+}
+
+model Panier {
+  id        String     @id @default(cuid())
+  userId    String     @unique @map("user_id")
+  status    CartStatus
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  user   Utilisateur   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lignes LignePanier[]
+
+  @@map("panier")
+}
+
+model LignePanier {
+  id        String @id @default(cuid())
+  cartId    String @map("cart_id")
+  variantId String @map("variant_id")
+  /// RG6 : quantité strictement positive — imposé par contrainte CHECK
+  /// (migration.sql).
+  quantity  Int
+
+  panier   Panier          @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variante VarianteProduit @relation(fields: [variantId], references: [id], onDelete: Restrict)
+
+  @@unique([cartId, variantId])
+  @@index([variantId])
+  @@map("ligne_panier")
+}
+
+model Commande {
+  id                  String      @id @default(cuid())
+  userId              String      @map("user_id")
+  status              OrderStatus
+  /// >= 0 imposé par contrainte CHECK (migration.sql).
+  totalAmount         Int         @map("total_amount")
+  /// A VALIDER : devise (voir GUIDE-VIBE-CODING.md).
+  currency            String      @db.Char(3)
+  shippingAddressJson Json        @map("shipping_address_json")
+  placedAt            DateTime    @default(now()) @map("placed_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+
+  user      Utilisateur     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  lignes    LigneCommande[]
+  paiements Paiement[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("commande")
+}
+
+model LigneCommande {
+  id                  String  @id @default(cuid())
+  orderId             String  @map("order_id")
+  variantId           String? @map("variant_id")
+  /// RG7 — snapshot immuable : conservé même si la variante est
+  /// archivée/supprimée (variantId passe alors à null, ces champs restent).
+  productNameSnapshot String  @map("product_name_snapshot")
+  skuSnapshot         String  @map("sku_snapshot")
+  /// >= 0 imposé par contrainte CHECK (migration.sql).
+  priceAmount         Int     @map("price_amount")
+  /// > 0 imposé par contrainte CHECK (migration.sql).
+  quantity            Int
+
+  commande Commande         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variante VarianteProduit? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([variantId])
+  @@map("ligne_commande")
+}
+
+model Paiement {
+  id                String          @id @default(cuid())
+  orderId           String          @map("order_id")
+  provider          PaymentProvider
+  providerReference String          @unique @map("provider_reference")
+  status            PaymentStatus
+  /// >= 0 imposé par contrainte CHECK (migration.sql).
+  amount            Int
+  /// A VALIDER : devise (voir GUIDE-VIBE-CODING.md).
+  currency          String          @db.Char(3)
+  /// RG8 — idempotence des webhooks : unique quand renseigné, empêche le
+  /// traitement en double d'un même événement prestataire.
+  rawEventHash      String?         @unique @map("raw_event_hash")
+  paidAt            DateTime?       @map("paid_at")
+
+  commande Commande @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([status])
+  @@map("paiement")
+}
+
+model Conversation {
+  id        String             @id @default(cuid())
+  clientId  String             @map("client_id")
+  staffId   String?            @map("staff_id")
+  status    ConversationStatus
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+
+  client   Utilisateur  @relation("ConversationClient", fields: [clientId], references: [id], onDelete: Restrict)
+  staff    Utilisateur? @relation("ConversationStaff", fields: [staffId], references: [id], onDelete: SetNull)
+  messages Message[]
+
+  @@index([clientId])
+  @@index([staffId])
+  @@map("conversation")
+}
+
+model Message {
+  id             String    @id @default(cuid())
+  conversationId String    @map("conversation_id")
+  senderId       String    @map("sender_id")
+  body           String
+  attachmentUrl  String?   @map("attachment_url")
+  sentAt         DateTime  @default(now()) @map("sent_at")
+  readAt         DateTime? @map("read_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       Utilisateur  @relation(fields: [senderId], references: [id], onDelete: Restrict)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("message")
+}
+
+model Partage {
+  id          String       @id @default(cuid())
+  catalogueId String       @map("catalogue_id")
+  userId      String?      @map("user_id")
+  network     ShareNetwork
+  shortUrl    String?      @map("short_url")
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  catalogue Catalogue    @relation(fields: [catalogueId], references: [id], onDelete: Cascade)
+  user      Utilisateur? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([catalogueId])
+  @@index([userId])
+  @@map("partage")
+}

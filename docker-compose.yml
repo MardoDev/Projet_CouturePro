@@ -9,7 +9,9 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: couture_dynamic_pro
     ports:
-      - "5432:5432"
+      # 5434 côté hôte : le port 5432 par défaut est déjà pris par un
+      # service PostgreSQL natif Windows sur cette machine.
+      - "5434:5432"
     volumes:
       - cdp_postgres_data:/var/lib/postgresql/data
 
@@ -17,7 +19,9 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      # 6380 côté hôte : le port 6379 par défaut est déjà pris par un autre
+      # projet local (irina-redis) sur cette machine.
+      - "6380:6379"
     volumes:
       - cdp_redis_data:/data
 
