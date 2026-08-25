@@ -124,6 +124,16 @@ model Utilisateur {
   status       UserStatus
   firstName    String     @map("first_name")
   lastName     String     @map("last_name")
+
+  /// Phase 3 (auth-rbac) — ajout au MLD d'origine (docs/etude-merise.md mis à
+  /// jour en conséquence). Le token brut n'est jamais stocké : seul son hash
+  /// SHA-256 l'est, comme un mot de passe.
+  emailVerifiedAt            DateTime? @map("email_verified_at")
+  emailVerificationTokenHash String?   @map("email_verification_token_hash")
+  emailVerificationExpiresAt DateTime? @map("email_verification_expires_at")
+  passwordResetTokenHash     String?   @map("password_reset_token_hash")
+  passwordResetExpiresAt     DateTime? @map("password_reset_expires_at")
+
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
 

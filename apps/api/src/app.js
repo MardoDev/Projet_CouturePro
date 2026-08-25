@@ -1,15 +1,27 @@
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const { createAuthRouter } = require("./routes/auth");
+const { createAdminUsersRouter } = require("./routes/admin-users");
 
 function createApp() {
   const app = express();
 
-  app.use(cors());
+  app.use(
+    cors({
+      origin: process.env.WEB_ORIGIN || "http://localhost:3000",
+      credentials: true,
+    }),
+  );
   app.use(express.json());
+  app.use(cookieParser());
 
   app.get("/health", (_request, response) => {
     response.json({ service: "couture-dynamic-pro-api", status: "ok" });
   });
+
+  app.use("/api/auth", createAuthRouter());
+  app.use("/api/admin/users", createAdminUsersRouter());
 
   app.get("/api/catalogues", (_request, response) => {
     response.json({

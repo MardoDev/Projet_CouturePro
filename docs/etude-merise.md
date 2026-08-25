@@ -33,7 +33,7 @@ Les 15 entités sont : `UTILISATEUR`, `CLIENT_PROFILE`, `COLLECTION`, `CATALOGUE
 ## 4. MLD / schéma relationnel
 
 ```text
-UTILISATEUR(id PK, email UQ, password_hash, role, status, first_name, last_name, created_at, updated_at)
+UTILISATEUR(id PK, email UQ, password_hash, role, status, first_name, last_name, email_verified_at NULL, email_verification_token_hash NULL, email_verification_expires_at NULL, password_reset_token_hash NULL, password_reset_expires_at NULL, created_at, updated_at)
 CLIENT_PROFILE(id PK, user_id FK->UTILISATEUR.id UQ, phone, address_json, consent_marketing, created_at)
 COLLECTION(id PK, name, season, year, description, status, cover_url, created_by FK->UTILISATEUR.id, created_at)
 CATALOGUE(id PK, collection_id FK->COLLECTION.id, title, slug UQ, description, cover_url, status, published_at, pdf_url, qr_url, created_by FK->UTILISATEUR.id)
@@ -121,4 +121,8 @@ Cardinalité exacte des conversations multi-agents, devise et unité monétaire,
 
 ## Historique
 
+- v1.2.1 — 25 août 2026 : ajout à UTILISATEUR de 5 colonnes techniques
+  (vérification email, réinitialisation de mot de passe) pour la Phase 3
+  (auth-rbac). Ne change ni le nombre d'entités (15) ni les RG — précision
+  technique, pas une règle métier nouvelle.
 - v1.2 — 21 août 2026 : 15 entités, MLD, FK, ON DELETE, MOT et dictionnaire dérivés du CDC.

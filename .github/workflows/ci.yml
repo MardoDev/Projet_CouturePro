@@ -27,6 +27,8 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://user:password@localhost:5432/couture_dynamic_pro
+      # Secret de CI uniquement — sans rapport avec un environnement réel.
+      JWT_SECRET: ci-test-secret-not-for-production
 
     steps:
       - uses: actions/checkout@v4
