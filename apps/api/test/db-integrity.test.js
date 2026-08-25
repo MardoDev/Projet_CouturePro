@@ -2,10 +2,25 @@
 //
 // Portée : ce fichier vérifie uniquement ce que la base de données peut
 // garantir structurellement (contraintes UNIQUE/CHECK, FK ON DELETE).
-//   - RG1, RG4, RG5, RG6, RG7, RG8, RG12 : couverts ici.
-//   - RG3 (catalogue publiable), RG9 (transitions de statut), RG11 (accès
-//     conversation) : règles applicatives, hors portée d'une contrainte DB —
-//     à tester en Phase 4 (backend-métier) / Phase 3 (auth-rbac).
+//   - RG1, RG3 (partiel), RG4, RG5, RG6, RG7, RG8, RG10, RG12 (partiel) :
+//     couverts ici.
+//   - RG3 : seule la partie "couverture + description obligatoires si
+//     publié" est un CHECK single-table ; la condition "au moins une page"
+//     nécessite une sous-requête inter-tables, impossible en CHECK Postgres
+//     — reste une validation applicative de Phase 4.
+//   - RG12 : le DB bloque (RESTRICT) la suppression d'une COLLECTION ou
+//     d'un UTILISATEUR référencés. En revanche, rien dans le MLD ne bloque
+//     la suppression physique d'un CATALOGUE ou d'un PRODUIT eux-mêmes
+//     (cascade sur pages/variantes, set null sur les commandes) : le MLD a
+//     délibérément choisi CASCADE/SET NULL pour ces deux entités plutôt que
+//     RESTRICT. La politique "archiver, jamais supprimer" pour CATALOGUE et
+//     PRODUIT est donc un garde-fou applicatif à implémenter en Phase 4
+//     (ne jamais exposer de DELETE catalogue/produit, seulement un passage
+//     à ARCHIVED) — pas une garantie DB.
+//   - RG9 (transitions de statut), RG11 (accès conversation) : règles
+//     applicatives nécessitant un contexte d'exécution (workflow, identité
+//     authentifiée) qui n'existe pas encore — à tester en Phase 4
+//     (backend-métier) / Phase 3 (auth-rbac).
 //
 // Nécessite une base migrée et accessible via DATABASE_URL
 // (docker compose up -d && npm run db:migrate --workspace=couture-dynamic-pro-api).
@@ -155,6 +170,65 @@ test("RG4 — le slug d'un catalogue est unique", async () => {
     );
   } finally {
     await prisma.catalogue.delete({ where: { id: catalogue.id } });
+    await prisma.collection.delete({ where: { id: collection.id } });
+    await prisma.utilisateur.delete({ where: { id: user.id } });
+  }
+});
+
+test("RG3 — un catalogue publié doit avoir une couverture et une description (partiel : le nombre de pages reste applicatif)", async () => {
+  const user = await makeUser();
+  const collection = await prisma.collection.create({
+    data: {
+      name: "Collection test RG3",
+      season: "Test",
+      year: 2026,
+      status: "DRAFT",
+      createdBy: user.id,
+    },
+  });
+
+  try {
+    // Publié sans cover_url ni description : doit être rejeté.
+    await assert.rejects(
+      prisma.catalogue.create({
+        data: {
+          collectionId: collection.id,
+          title: "Catalogue incomplet",
+          slug: unique("slug-incomplet"),
+          status: "PUBLISHED",
+          createdBy: user.id,
+        },
+      }),
+      /catalogue_publiable_check/,
+    );
+
+    // Brouillon sans cover_url ni description : autorisé (RG3 ne s'applique
+    // qu'au statut PUBLISHED).
+    const draft = await prisma.catalogue.create({
+      data: {
+        collectionId: collection.id,
+        title: "Catalogue brouillon",
+        slug: unique("slug-brouillon"),
+        status: "DRAFT",
+        createdBy: user.id,
+      },
+    });
+    await prisma.catalogue.delete({ where: { id: draft.id } });
+
+    // Publié avec cover_url et description : autorisé.
+    const published = await prisma.catalogue.create({
+      data: {
+        collectionId: collection.id,
+        title: "Catalogue complet",
+        slug: unique("slug-complet"),
+        status: "PUBLISHED",
+        coverUrl: "https://example.test/cover.jpg",
+        description: "Description valide.",
+        createdBy: user.id,
+      },
+    });
+    await prisma.catalogue.delete({ where: { id: published.id } });
+  } finally {
     await prisma.collection.delete({ where: { id: collection.id } });
     await prisma.utilisateur.delete({ where: { id: user.id } });
   }
@@ -329,6 +403,8 @@ test("RG12 — une collection référencée par un catalogue ne peut pas être s
       title: "Catalogue protégé",
       slug: unique("slug-protege"),
       status: "PUBLISHED",
+      coverUrl: "https://example.test/cover.jpg",
+      description: "Description valide.",
       createdBy: user.id,
     },
   });

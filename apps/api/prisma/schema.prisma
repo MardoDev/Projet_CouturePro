@@ -175,6 +175,12 @@ model Collection {
   @@map("collection")
 }
 
+/// RG3 (partiel, voir migration catalogue_publiable_check) et RG12 : le MLD
+/// choisit CASCADE (pages, partages) et non RESTRICT pour tout ce qui
+/// dépend de ce catalogue — rien n'empêche donc sa suppression physique côté
+/// DB, même utilisé. "Archiver, jamais supprimer" (RG12) doit être un
+/// garde-fou applicatif en Phase 4 (pas de DELETE catalogue exposé, statut
+/// ARCHIVED uniquement).
 model Catalogue {
   id           String          @id @default(cuid())
   collectionId String          @map("collection_id")
@@ -212,6 +218,9 @@ model CataloguePage {
   @@map("catalogue_page")
 }
 
+/// RG12 : comme Catalogue, le MLD choisit CASCADE (variantes) et non
+/// RESTRICT — rien n'empêche la suppression physique côté DB. "Archiver,
+/// jamais supprimer" doit être un garde-fou applicatif en Phase 4.
 model Produit {
   id           String            @id @default(cuid())
   collectionId String?           @map("collection_id")

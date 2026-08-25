@@ -63,6 +63,7 @@ async function main() {
       title: "Été Tropical 2026",
       slug: "ete-tropical-2026",
       description: "Catalogue de démonstration (seed).",
+      coverUrl: "https://placehold.co/1200x630?text=Ete+Tropical+2026",
       status: "PUBLISHED",
       publishedAt: new Date(),
       createdBy: admin.id,
