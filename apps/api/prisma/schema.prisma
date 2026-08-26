@@ -260,8 +260,8 @@ model VarianteProduit {
   sku           String            @unique
   size          String
   color         String
-  /// Montant en unité mineure (voir dictionnaire, section 8 de l'étude
-  /// Merise) ; >= 0 imposé par contrainte CHECK (migration.sql).
+  /// XAF n'a pas d'unité mineure (0 décimale, ISO 4217) : ce montant est en
+  /// XAF entiers, pas en centimes. >= 0 imposé par contrainte CHECK (migration.sql).
   priceAmount   Int               @map("price_amount")
   /// Devise validée : XAF (voir en-tête du fichier).
   currency      String            @default("XAF") @db.Char(3)

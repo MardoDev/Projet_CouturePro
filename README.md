@@ -65,6 +65,30 @@ voir les commentaires dans `docker-compose.yml` et `apps/api/.env.example`.
   politique « archiver, jamais supprimer » est un garde-fou applicatif qui reste
   à câbler dans les dashboards (Phase 6) : ne jamais exposer de DELETE dessus.
 
+## Frontend public (Phase 5 — tranche 1)
+
+- Pages de découverte : accueil, `/catalogues` (liste + détail avec flipbook
+  placeholder + partage), `/produits` (liste + détail + ajout au panier),
+  `/contact` (devis par email tant que le chat, Phase 7, n'existe pas).
+- SSR : chaque page fetch l'API directement (`apps/web/src/lib/api.ts`,
+  `cache: "no-store"`), `generateMetadata` pour SEO/OG, `loading.tsx`/
+  `error.tsx`/`not-found.tsx` pour les états d'interface.
+- **Limite connue** : `notFound()` dans `/catalogues/[slug]` et
+  `/produits/[slug]` affiche la bonne page "introuvable" mais renvoie un
+  statut HTTP 200 au lieu de 404 (testé en production `next start`, pas un
+  problème de `next dev`). Comportement documenté de Next.js 14 App Router
+  quand `notFound()` coexiste avec `generateMetadata` sur une route
+  dynamique — mauvais pour l'indexation SEO d'une page qui n'existe pas, à
+  corriger avant la Phase 8 (ou en amont si un correctif Next.js sort).
+- **Reste à faire (tranche 2)** : panier (page dédiée), checkout 3 étapes,
+  connexion/inscription/compte client, chat placeholder déjà posé (bouton
+  flottant) mais sans page compte pour s'y connecter. L'ajout au panier
+  échoue proprement en 401 tant que `/connexion` n'existe pas.
+- Tests dédiés (RTL/jsdom) non mis en place dans cette tranche — la
+  correction TypeScript (`npm run typecheck`) et le build (`next build`)
+  restent le filet de sécurité actuel ; un vrai test-runner composant est
+  Phase 8.
+
 ## Portes qualité
 
 ```bash
