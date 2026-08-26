@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getSession } from "@/lib/session";
 
 const NAV_LINKS = [
   { href: "/catalogues", label: "Catalogues" },
@@ -6,7 +7,9 @@ const NAV_LINKS = [
   { href: "/contact", label: "Contact" },
 ];
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const user = await getSession();
+
   return (
     <header className="border-b border-border bg-ivoire">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
@@ -28,8 +31,12 @@ export function SiteHeader() {
           <Link href="/panier" className="font-body text-sm hover:text-peche-fonce" aria-label="Panier">
             Panier
           </Link>
-          <Link href="/compte" className="font-body text-sm hover:text-peche-fonce" aria-label="Mon compte">
-            Compte
+          <Link
+            href={user ? "/compte" : "/connexion"}
+            className="font-body text-sm hover:text-peche-fonce"
+            aria-label="Mon compte"
+          >
+            {user ? user.firstName : "Connexion"}
           </Link>
         </div>
       </div>

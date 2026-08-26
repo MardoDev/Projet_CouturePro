@@ -121,3 +121,62 @@ export function listProduits() {
 export function getProduit(slug: string) {
   return apiFetchOrNull<{ produit: Produit }>(`/api/v1/produits/${encodeURIComponent(slug)}`);
 }
+
+// --- Ressources authentifiées : appelées depuis un Server Component avec le
+// cookie de session transmis explicitement (voir apps/web/src/lib/session.ts),
+// ou depuis un Client Component avec `credentials: "include"` directement.
+
+export type CartItem = {
+  id: string;
+  variantId: string;
+  quantity: number;
+  produitName: string;
+  sku: string;
+  size: string;
+  color: string;
+  unitPriceAmount: number;
+  currency: string;
+  lineTotalAmount: number;
+  variantStatus: string;
+  availableStock: number;
+};
+
+export type Panier = {
+  id: string;
+  status: string;
+  items: CartItem[];
+  totalAmount: number;
+  currency: string | null;
+  currencyConflict: boolean;
+};
+
+export type LigneCommande = {
+  id: string;
+  variantId: string | null;
+  productNameSnapshot: string;
+  skuSnapshot: string;
+  priceAmount: number;
+  quantity: number;
+};
+
+export type Commande = {
+  id: string;
+  status: string;
+  totalAmount: number;
+  currency: string;
+  shippingAddressJson: Record<string, unknown>;
+  placedAt: string;
+  lignes: LigneCommande[];
+};
+
+export function getPanierServer(cookieHeader: string) {
+  return apiFetch<{ panier: Panier }>("/api/v1/panier", {
+    headers: { cookie: cookieHeader },
+  });
+}
+
+export function listCommandesServer(cookieHeader: string) {
+  return apiFetch<{ commandes: Commande[] }>("/api/v1/commandes", {
+    headers: { cookie: cookieHeader },
+  });
+}

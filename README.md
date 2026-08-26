@@ -65,14 +65,30 @@ voir les commentaires dans `docker-compose.yml` et `apps/api/.env.example`.
   politique « archiver, jamais supprimer » est un garde-fou applicatif qui reste
   à câbler dans les dashboards (Phase 6) : ne jamais exposer de DELETE dessus.
 
-## Frontend public (Phase 5 — tranche 1)
+## Frontend public (Phase 5 — complet)
 
-- Pages de découverte : accueil, `/catalogues` (liste + détail avec flipbook
-  placeholder + partage), `/produits` (liste + détail + ajout au panier),
-  `/contact` (devis par email tant que le chat, Phase 7, n'existe pas).
+**Tranche 1 — découverte :** accueil, `/catalogues` (liste + détail avec
+flipbook placeholder + partage), `/produits` (liste + détail + ajout au
+panier), `/contact` (devis par email tant que le chat, Phase 7, n'existe pas).
+
+**Tranche 2 — compte et achat :** `/inscription`, `/verification-email`,
+`/connexion`, `/compte` (+ `/compte/commandes`), `/panier` (quantités/retrait
+en direct), `/checkout` (3 étapes : adresse → récapitulatif → confirmation,
+idempotent via `Idempotency-Key`). Parcours complet vérifié en conditions
+réelles (`next build && next start`, pas `next dev`) : inscription → lien de
+vérification (dev) → connexion → session lue en SSR → panier → commande →
+historique — chaque étape testée via curl contre l'API et la DB réelles, pas
+seulement compilée.
+
 - SSR : chaque page fetch l'API directement (`apps/web/src/lib/api.ts`,
   `cache: "no-store"`), `generateMetadata` pour SEO/OG, `loading.tsx`/
   `error.tsx`/`not-found.tsx` pour les états d'interface.
+- Session lue côté serveur (`apps/web/src/lib/session.ts`) : le cookie posé
+  par l'API (origine séparée) est repris de la requête entrante et transmis
+  explicitement à l'appel API suivant. Fonctionne ici car les deux tournent
+  sur `localhost` (les cookies ignorent le port). **En production, sur des
+  sous-domaines distincts, il faudra un cookie `Domain=.cdp-couture.com` ou
+  un proxy `/api` — décision de déploiement, Phase 9, pas encore prise.**
 - **Limite connue** : `notFound()` dans `/catalogues/[slug]` et
   `/produits/[slug]` affiche la bonne page "introuvable" mais renvoie un
   statut HTTP 200 au lieu de 404 (testé en production `next start`, pas un
@@ -80,14 +96,10 @@ voir les commentaires dans `docker-compose.yml` et `apps/api/.env.example`.
   quand `notFound()` coexiste avec `generateMetadata` sur une route
   dynamique — mauvais pour l'indexation SEO d'une page qui n'existe pas, à
   corriger avant la Phase 8 (ou en amont si un correctif Next.js sort).
-- **Reste à faire (tranche 2)** : panier (page dédiée), checkout 3 étapes,
-  connexion/inscription/compte client, chat placeholder déjà posé (bouton
-  flottant) mais sans page compte pour s'y connecter. L'ajout au panier
-  échoue proprement en 401 tant que `/connexion` n'existe pas.
-- Tests dédiés (RTL/jsdom) non mis en place dans cette tranche — la
-  correction TypeScript (`npm run typecheck`) et le build (`next build`)
-  restent le filet de sécurité actuel ; un vrai test-runner composant est
-  Phase 8.
+- Tests dédiés (RTL/jsdom) non mis en place — la correction TypeScript
+  (`npm run typecheck`), le build (`next build`) et la vérification manuelle
+  end-to-end ci-dessus sont le filet de sécurité actuel ; un vrai test-runner
+  composant/E2E est Phase 8.
 
 ## Portes qualité
 
