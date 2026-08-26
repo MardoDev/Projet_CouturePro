@@ -40,4 +40,25 @@ function requireRole(...allowedRoles) {
   };
 }
 
-module.exports = { authenticate, requireRole };
+/// Pour les routes publiques dont le contenu varie selon le rôle (ex. un
+/// contenu manager voit ses brouillons, le public non). N'échoue jamais :
+/// un cookie absent, invalide ou expiré laisse simplement request.user
+/// indéfini plutôt que de rejeter la requête.
+async function optionalAuthenticate(request, _response, next) {
+  const token = request.cookies?.[SESSION_COOKIE_NAME];
+  if (!token) {
+    return next();
+  }
+  try {
+    const payload = verifySessionToken(token);
+    const user = await prisma.utilisateur.findUnique({ where: { id: payload.sub } });
+    if (user && user.status === "ACTIVE") {
+      request.user = user;
+    }
+  } catch {
+    // Token invalide/expiré : traité comme anonyme, pas comme une erreur.
+  }
+  next();
+}
+
+module.exports = { authenticate, requireRole, optionalAuthenticate };

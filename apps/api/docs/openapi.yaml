@@ -1,0 +1,288 @@
+openapi: 3.0.3
+info:
+  title: Couture Dynamic Pro — API métier (Phase 4)
+  version: "1.0"
+  description: >
+    Contrat des endpoints REST versionnés (collections, catalogues, pages,
+    produits, variantes, panier, commandes). Les endpoints /api/auth et
+    /api/admin/users (Phase 3) et les paiements (Phase 7) ne sont pas
+    couverts par ce document.
+servers:
+  - url: /api/v1
+security:
+  - sessionCookie: []
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: cdp_session
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+      description: Requis pour les opérations sensibles (ex. création de commande).
+paths:
+  /collections:
+    get:
+      summary: Lister les collections (publiées pour le public, toutes pour ADMIN/CONTENT_MANAGER)
+      security: []
+      responses:
+        "200":
+          description: OK
+    post:
+      summary: Créer une collection (statut initial DRAFT)
+      description: Rôles autorisés — ADMIN, CONTENT_MANAGER.
+      responses:
+        "201":
+          description: Créée
+        "400":
+          description: Entrée invalide
+        "401":
+          description: Non authentifié
+        "403":
+          description: Rôle non autorisé
+  /collections/{id}:
+    get:
+      summary: Détail d'une collection (404 si non publiée et appelant non staff)
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Non trouvée / non publiée }
+    patch:
+      summary: Mettre à jour une collection (y compris transition de statut)
+      description: Rôles autorisés — ADMIN, CONTENT_MANAGER.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Non trouvée }
+  /catalogues:
+    get:
+      summary: Lister les catalogues (publiés pour le public, tous pour le staff)
+      security: []
+      responses:
+        "200": { description: OK }
+    post:
+      summary: Créer un catalogue (statut initial DRAFT, slug généré depuis le titre si absent)
+      description: Rôles autorisés — ADMIN, CONTENT_MANAGER. RG4 (slug unique).
+      responses:
+        "201": { description: Créé }
+        "409": { description: Slug déjà utilisé }
+  /catalogues/{slug}:
+    get:
+      summary: Détail d'un catalogue par slug, avec ses pages (RG4)
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Non trouvé / non publié }
+  /catalogues/{id}:
+    patch:
+      summary: Mettre à jour un catalogue ; publier applique RG3
+      description: >
+        Rôles autorisés — ADMIN, CONTENT_MANAGER. Le slug ne peut plus être
+        modifié une fois PUBLISHED (RG4). Passer à PUBLISHED exige
+        couverture + description + au moins une page (RG3).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "400": { description: "RG3 non satisfait (NOT_PUBLISHABLE)" }
+        "409": { description: "Slug verrouillé (publié) ou déjà utilisé" }
+  /catalogues/{id}/pages:
+    post:
+      summary: Ajouter une page à un catalogue
+      description: Rôles autorisés — ADMIN, CONTENT_MANAGER.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "201": { description: Créée }
+        "409": { description: Numéro de page déjà utilisé (contrainte unique) }
+  /catalogues/{id}/pages/{pageId}:
+    delete:
+      summary: Retirer une page d'un catalogue
+      description: Rôles autorisés — ADMIN, CONTENT_MANAGER.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: pageId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: Supprimée }
+  /produits:
+    get:
+      summary: Lister les produits (ACTIVE pour le public, tous pour ADMIN)
+      security: []
+      responses:
+        "200": { description: OK }
+    post:
+      summary: Créer un produit (statut initial DRAFT)
+      description: Rôle autorisé — ADMIN uniquement (UC6).
+      responses:
+        "201": { description: Créé }
+  /produits/{slug}:
+    get:
+      summary: Détail d'un produit avec ses variantes (ACTIVE uniquement pour le public, RG5)
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Non trouvé / non actif }
+  /produits/{id}:
+    patch:
+      summary: Mettre à jour un produit ; passage à ACTIVE exige une variante ACTIVE (RG5)
+      description: Rôle autorisé — ADMIN uniquement.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "400": { description: "RG5 non satisfait (NO_ACTIVE_VARIANT)" }
+  /produits/{id}/variantes:
+    post:
+      summary: Ajouter une variante (prix/stock >= 0, RG5, contrainte DB)
+      description: Rôle autorisé — ADMIN uniquement.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "201": { description: Créée }
+        "409": { description: SKU ou combinaison taille/couleur déjà utilisés }
+  /produits/{id}/variantes/{varianteId}:
+    patch:
+      summary: Mettre à jour une variante (prix, stock, statut)
+      description: Rôle autorisé — ADMIN uniquement.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: varianteId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+  /panier:
+    get:
+      summary: Panier actif du client courant (prix toujours recalculés côté serveur, RG6)
+      description: Rôle autorisé — CLIENT uniquement.
+      responses:
+        "200": { description: OK }
+  /panier/lignes:
+    post:
+      summary: Ajouter une ligne au panier (fusion de quantité si la variante y est déjà)
+      description: Rôle autorisé — CLIENT uniquement. RG6 — disponibilité vérifiée côté serveur.
+      responses:
+        "200": { description: OK }
+        "409": { description: Stock insuffisant (INSUFFICIENT_STOCK) }
+  /panier/lignes/{ligneId}:
+    patch:
+      summary: Modifier la quantité d'une ligne
+      description: Rôle autorisé — CLIENT uniquement (sur son propre panier).
+      parameters:
+        - name: ligneId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Ligne non trouvée (hors périmètre) }
+    delete:
+      summary: Retirer une ligne du panier
+      description: Rôle autorisé — CLIENT uniquement (sur son propre panier).
+      parameters:
+        - name: ligneId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+  /commandes:
+    get:
+      summary: Lister les commandes (RG2 — périmètre par rôle)
+      description: >
+        CLIENT : ses commandes uniquement. LOGISTICS : uniquement
+        PREPARING/SHIPPED (son périmètre). ADMIN : toutes, filtrable par
+        ?status=.
+      responses:
+        "200": { description: OK }
+    post:
+      summary: Passer commande (checkout) — snapshot immuable (RG7), stock décrémenté atomiquement
+      description: >
+        Rôle autorisé — CLIENT uniquement. Idempotente (Idempotency-Key
+        requis) : un rejeu avec la même clé renvoie la réponse déjà produite
+        sans recréer de commande. Aucun paiement initié ici (Phase 7).
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "201": { description: Créée }
+        "400": { description: Panier vide ou adresse de livraison manquante }
+        "409": { description: Stock insuffisant, conflit de devise, ou rejeu en cours }
+  /commandes/{id}:
+    get:
+      summary: Détail d'une commande (404 hors périmètre du rôle, jamais 403 — anti-énumération)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Non trouvée / hors périmètre }
+  /commandes/{id}/statut:
+    patch:
+      summary: Transition de statut (RG9)
+      description: >
+        Rôles autorisés — ADMIN (RECEIVED→PREPARING/CANCELLED,
+        PREPARING→SHIPPED/CANCELLED, SHIPPED→DELIVERED), LOGISTICS
+        (PREPARING→SHIPPED, SHIPPED→DELIVERED uniquement). FAILED n'est pas
+        atteignable ici : déclenché par un échec de paiement (Phase 7).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "409": { description: Transition non autorisée (INVALID_TRANSITION) }

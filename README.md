@@ -41,14 +41,55 @@ voir les commentaires dans `docker-compose.yml` et `apps/api/.env.example`.
   base migrée et accessible (`DATABASE_URL`) — c'est aussi le cas en CI, qui
   démarre un service PostgreSQL dédié.
 
+## Auth / RBAC (Phase 3)
+
+- Sessions par cookie httpOnly + JWT (`apps/api/src/auth/`), RBAC deny-by-default
+  (`apps/api/src/middleware/auth.js`) : `authenticate`, `requireRole`, `optionalAuthenticate`.
+- Aucun prestataire d'envoi d'email n'étant défini dans la stack (CLAUDE.md), les
+  liens de vérification/reset sont renvoyés directement dans la réponse API en
+  environnement non-production (`devEmailVerificationToken`, `devPasswordResetToken`,
+  `devPasswordSetupToken`) — à remplacer par un vrai envoi avant la mise en production.
+- MFA explicitement non implémenté (décision en attente, voir `GUIDE-VIBE-CODING.md`).
+
+## Backend métier (Phase 4)
+
+- API versionnée sous `/api/v1/` (collections, catalogues, pages, produits,
+  variantes, panier, commandes) — contrat : [`apps/api/docs/openapi.yaml`](./apps/api/docs/openapi.yaml).
+- Paiements réels non implémentés ici : le checkout crée la commande (snapshot RG7,
+  stock décrémenté atomiquement) sans toucher à `PAIEMENT`, réservé à la Phase 7
+  (webhooks CinetPay/Stripe vérifiés, RG8).
+- `POST /api/v1/commandes` est idempotente via l'en-tête `Idempotency-Key`
+  (Redis, `apps/api/src/middleware/idempotency.js`).
+- RG12 pour `CATALOGUE`/`PRODUIT` : le MLD choisit CASCADE/SET NULL (pas RESTRICT)
+  pour ce qui en dépend — rien n'empêche leur suppression physique côté DB. La
+  politique « archiver, jamais supprimer » est un garde-fou applicatif qui reste
+  à câbler dans les dashboards (Phase 6) : ne jamais exposer de DELETE dessus.
+
 ## Portes qualité
 
 ```bash
 npm run lint
 npm run typecheck
 npm run build
-npm run test               # apps/api nécessite une base migrée, voir ci-dessus
+npm run test               # apps/api nécessite une base migrée + Redis, voir ci-dessus
 ```
+
+`apps/api` utilise `node --test --test-force-exit` : sur cette machine, des
+connexions HTTP/DB laissées ouvertes par les tests d'intégration pouvaient
+empêcher le processus de se terminer sans ce flag — comportement d'environnement,
+pas un bug applicatif (chaque test individuel passe correctement).
 
 Ne pas ouvrir une phase avant que la porte de la phase précédente soit verte
 (voir l'orchestrateur dans `.claude/skills/couture-dynamic-pro-orchestrateur/`).
+
+## Sécurité — dépendances
+
+`npm audit` signale 5 vulnérabilités « high », toutes dans la même chaîne
+(`next` → `glob`/`postcss`). Les avis GHSA ne les considèrent corrigées qu'à
+partir de Next.js 16.3 — aucun correctif n'existe dans la ligne 14.x. `next`
+est mis à jour au patch le plus récent de la ligne 14 (`14.2.35`, CLAUDE.md
+fixe la stack sur Next 14) ; passer en 16 est un saut de deux versions majeures
+qui sort du cadre d'une session de maintenance courante et doit être une
+décision explicite avant que les Phases 5+ construisent sur les sous-systèmes
+concernés (Image Optimization, Middleware, Server Actions — aucun n'est encore
+utilisé ici, donc l'exposition réelle actuelle est nulle).

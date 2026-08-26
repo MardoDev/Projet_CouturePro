@@ -24,9 +24,21 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     env:
       DATABASE_URL: postgresql://user:password@localhost:5432/couture_dynamic_pro
+      # Port standard ici : pas de conflit local à éviter en CI (contrairement
+      # à docker-compose.yml, voir ses commentaires).
+      REDIS_URL: redis://localhost:6379
       # Secret de CI uniquement — sans rapport avec un environnement réel.
       JWT_SECRET: ci-test-secret-not-for-production
 

@@ -3,6 +3,11 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const { createAuthRouter } = require("./routes/auth");
 const { createAdminUsersRouter } = require("./routes/admin-users");
+const { createCollectionsRouter } = require("./routes/v1/collections");
+const { createCataloguesRouter } = require("./routes/v1/catalogues");
+const { createProduitsRouter } = require("./routes/v1/produits");
+const { createPanierRouter } = require("./routes/v1/panier");
+const { createCommandesRouter } = require("./routes/v1/commandes");
 
 function createApp() {
   const app = express();
@@ -23,15 +28,13 @@ function createApp() {
   app.use("/api/auth", createAuthRouter());
   app.use("/api/admin/users", createAdminUsersRouter());
 
-  app.get("/api/catalogues", (_request, response) => {
-    response.json({
-      data: [
-        { slug: "ete-tropical-2026", title: "Été Tropical", season: "Été 2026" },
-        { slug: "haute-couture-prestige", title: "Haute Couture Prestige", season: "Permanente" },
-        { slug: "pret-a-porter-urbain", title: "Prêt-à-Porter Urbain", season: "Automne 2026" },
-      ],
-    });
-  });
+  // API métier versionnée (Phase 4). Les paiements réels (CinetPay/Stripe,
+  // webhooks vérifiés RG8) arrivent en Phase 7 — aucune route /paiements ici.
+  app.use("/api/v1/collections", createCollectionsRouter());
+  app.use("/api/v1/catalogues", createCataloguesRouter());
+  app.use("/api/v1/produits", createProduitsRouter());
+  app.use("/api/v1/panier", createPanierRouter());
+  app.use("/api/v1/commandes", createCommandesRouter());
 
   return app;
 }

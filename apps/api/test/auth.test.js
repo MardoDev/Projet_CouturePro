@@ -26,7 +26,10 @@ before(async () => {
 after(async () => {
   await prisma.utilisateur.deleteMany({ where: { id: { in: createdUserIds } } });
   await prisma.$disconnect();
+  // closeAllConnections() : sans ça, une connexion HTTP keep-alive laissée
+  // ouverte par fetch() peut empêcher le processus de se terminer.
   server.close();
+  server.closeAllConnections();
 });
 
 function unique(prefix) {
