@@ -12,8 +12,11 @@
 // - Les champs marqués "NULL" dans le MLD sont nullable ici ; les champs
 //   texte décoratifs sans rôle métier critique (description, cover_url...)
 //   sont nullable par défaut prudent — resserrer si Phase 4 l'exige.
-// - `currency` (char(3)) n'a volontairement AUCUNE valeur par défaut : la
-//   devise est une décision métier non validée (voir GUIDE-VIBE-CODING.md).
+// - `currency` (char(3)) : devise validée par C.D.P le 26/08/2026 = XAF
+//   (franc CFA BEAC). Défaut "XAF" + contrainte CHECK currency = 'XAF' sur
+//   les 3 tables concernées (voir migration currency_xaf) — une seule
+//   devise en usage, pas de multi-devise (V2 non anticipée, CLAUDE.md).
+//   Taxes et règles de facturation restent "A VALIDER" (GUIDE-VIBE-CODING.md).
 // - Contraintes CHECK (montants/quantités >= 0, email en minuscules) : voir
 //   prisma/migrations/.../migration.sql, ajoutées à la main après le
 //   `prisma migrate dev` généré (non exprimables nativement dans ce schéma).
@@ -260,9 +263,8 @@ model VarianteProduit {
   /// Montant en unité mineure (voir dictionnaire, section 8 de l'étude
   /// Merise) ; >= 0 imposé par contrainte CHECK (migration.sql).
   priceAmount   Int               @map("price_amount")
-  /// A VALIDER : devise (voir GUIDE-VIBE-CODING.md) — aucune valeur par
-  /// défaut n'est fixée ici.
-  currency      String            @db.Char(3)
+  /// Devise validée : XAF (voir en-tête du fichier).
+  currency      String            @default("XAF") @db.Char(3)
   stockQuantity Int               @map("stock_quantity")
   status        CatalogItemStatus
 
@@ -309,8 +311,8 @@ model Commande {
   status              OrderStatus
   /// >= 0 imposé par contrainte CHECK (migration.sql).
   totalAmount         Int         @map("total_amount")
-  /// A VALIDER : devise (voir GUIDE-VIBE-CODING.md).
-  currency            String      @db.Char(3)
+  /// Devise validée : XAF (voir en-tête du fichier).
+  currency            String      @default("XAF") @db.Char(3)
   shippingAddressJson Json        @map("shipping_address_json")
   placedAt            DateTime    @default(now()) @map("placed_at")
   updatedAt           DateTime    @updatedAt @map("updated_at")
@@ -353,8 +355,8 @@ model Paiement {
   status            PaymentStatus
   /// >= 0 imposé par contrainte CHECK (migration.sql).
   amount            Int
-  /// A VALIDER : devise (voir GUIDE-VIBE-CODING.md).
-  currency          String          @db.Char(3)
+  /// Devise validée : XAF (voir en-tête du fichier).
+  currency          String          @default("XAF") @db.Char(3)
   /// RG8 — idempotence des webhooks : unique quand renseigné, empêche le
   /// traitement en double d'un même événement prestataire.
   rawEventHash      String?         @unique @map("raw_event_hash")

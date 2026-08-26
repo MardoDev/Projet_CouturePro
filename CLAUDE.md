@@ -25,7 +25,7 @@ Administrateur/Propriétaire, Client/Acheteur, Gestionnaire de contenu, Opérate
 
 ## Interdits
 
-Ne pas implémenter la V2 par anticipation. Ne pas hardcoder devise, taxes, livraison, remboursements ou conservation sans validation. Ne pas exposer de secrets. Ne pas supprimer destructivement une donnée commerciale. Ne pas contourner RBAC, audit, idempotence des webhooks ou validation serveur.
+Ne pas implémenter la V2 par anticipation. Devise validée (XAF, 26/08/2026) : seule exception au hardcoding, une contrainte DB l'impose. Ne pas hardcoder taxes, livraison, remboursements ou conservation sans validation. Ne pas exposer de secrets. Ne pas supprimer destructivement une donnée commerciale. Ne pas contourner RBAC, audit, idempotence des webhooks ou validation serveur.
 
 ## Modèle de données
 

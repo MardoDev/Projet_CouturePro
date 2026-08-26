@@ -63,7 +63,7 @@ async function makeProduitWithVariante(userId, overrides = {}) {
             size: "M",
             color: "Bleu",
             priceAmount: 1000,
-            currency: "XXX",
+            currency: "XAF",
             stockQuantity: 3,
             status: "ACTIVE",
             ...overrides,
@@ -291,7 +291,7 @@ test("RG7 — le snapshot d'une ligne de commande survit à la suppression de la
       userId: user.id,
       status: "RECEIVED",
       totalAmount: variant.priceAmount,
-      currency: "XXX",
+      currency: "XAF",
       shippingAddressJson: { note: "fixture de test" },
       lignes: {
         create: [
@@ -337,7 +337,7 @@ test("RG8 — un événement de paiement (raw_event_hash) ne peut pas être trai
       userId: user.id,
       status: "RECEIVED",
       totalAmount: 1000,
-      currency: "XXX",
+      currency: "XAF",
       shippingAddressJson: {},
     },
   });
@@ -346,7 +346,7 @@ test("RG8 — un événement de paiement (raw_event_hash) ne peut pas être trai
       userId: user.id,
       status: "RECEIVED",
       totalAmount: 1000,
-      currency: "XXX",
+      currency: "XAF",
       shippingAddressJson: {},
     },
   });
@@ -359,7 +359,7 @@ test("RG8 — un événement de paiement (raw_event_hash) ne peut pas être trai
       providerReference: unique("ref"),
       status: "PAID",
       amount: 1000,
-      currency: "XXX",
+      currency: "XAF",
       rawEventHash,
     },
   });
@@ -373,7 +373,7 @@ test("RG8 — un événement de paiement (raw_event_hash) ne peut pas être trai
           providerReference: unique("ref"),
           status: "PAID",
           amount: 1000,
-          currency: "XXX",
+          currency: "XAF",
           rawEventHash, // webhook rejoué : même événement, doit être rejeté
         },
       }),

@@ -2,9 +2,7 @@
 //
 // - Aucun secret réel : le "password_hash" est un marqueur explicite, pas un
 //   hash bcrypt valide (l'authentification arrive en Phase 3).
-// - "XXX" (ISO 4217 : "pas de devise") est utilisé pour currency tant que la
-//   devise réelle n'est pas validée (voir GUIDE-VIBE-CODING.md) — ne jamais
-//   traiter cette valeur comme une décision métier acquise.
+// - Devise : XAF, validée par C.D.P le 26/08/2026 (voir schema.prisma).
 const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
@@ -94,7 +92,7 @@ async function main() {
             size: "M",
             color: "Rouge",
             priceAmount: 25000,
-            currency: "XXX",
+            currency: "XAF",
             stockQuantity: 5,
             status: "ACTIVE",
           },

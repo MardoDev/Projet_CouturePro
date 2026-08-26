@@ -113,14 +113,17 @@ Client ouvre ou reprend une conversation → serveur Socket.IO vérifie RG11 →
 | status paiement | enum | INITIATED, PENDING, PAID, FAILED, REFUNDED |
 | network | enum | WHATSAPP, FACEBOOK, INSTAGRAM, TWITTER_X, COPY |
 | quantity | integer | > 0 |
-| currency | char(3) | devise validée par C.D.P |
+| currency | char(3) | XAF — validée par C.D.P le 26 août 2026, seule devise en usage |
 
 ## 9. Décisions à valider
 
-Cardinalité exacte des conversations multi-agents, devise et unité monétaire, stratégie de stock réservé pendant paiement, politique d'anonymisation, durée de conservation et règles de suppression. Ces décisions ne doivent pas être codées comme faits acquis.
+Cardinalité exacte des conversations multi-agents, stratégie de stock réservé pendant paiement, politique d'anonymisation, durée de conservation et règles de suppression. Devise résolue (XAF, v1.2.2) — taxes et facturation restent ouvertes. Ces décisions ne doivent pas être codées comme faits acquis.
 
 ## Historique
 
+- v1.2.2 — 26 août 2026 : devise validée par C.D.P = XAF. Défaut + contrainte
+  CHECK ajoutés sur variante_produit/commande/paiement.currency (une seule
+  devise en usage). Taxes et facturation restent à valider séparément.
 - v1.2.1 — 25 août 2026 : ajout à UTILISATEUR de 5 colonnes techniques
   (vérification email, réinitialisation de mot de passe) pour la Phase 3
   (auth-rbac). Ne change ni le nombre d'entités (15) ni les RG — précision

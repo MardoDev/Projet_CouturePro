@@ -24,15 +24,16 @@ Un prompt = une session = une intention = un commit. Le prompt cite la phase, le
 
 ## Tableau des décisions en attente
 
-| Sujet | Décideur | Bloque |
-|---|---|---|
-| Devise, taxes et facturation | C.D.P / conseil | Commandes et paiements |
-| Zones, tarifs et preuve de livraison | C.D.P | Checkout/logistique |
-| Annulations, retours, remboursements | C.D.P / juridique | Paiements |
-| Conservation, consentement et suppression | C.D.P / juridique | RGPD, analytics, chat |
-| MFA et validation comptes internes | C.D.P | Auth/RBAC |
-| Prestataires et comptes production | C.D.P | Déploiement |
-| Contenu légal et 6 catalogues de lancement | C.D.P | Mise en production |
+| Sujet | Décideur | Bloque | Statut |
+|---|---|---|---|
+| Devise | C.D.P | — | ✅ Résolu 26/08/2026 : XAF |
+| Taxes et facturation | C.D.P / conseil | Commandes et paiements | Ouvert |
+| Zones, tarifs et preuve de livraison | C.D.P | Checkout/logistique | Ouvert |
+| Annulations, retours, remboursements | C.D.P / juridique | Paiements | Ouvert |
+| Conservation, consentement et suppression | C.D.P / juridique | RGPD, analytics, chat | Ouvert |
+| MFA et validation comptes internes | C.D.P | Auth/RBAC | Activation comptes internes déjà implémentée (Phase 3) ; MFA lui-même encore ouvert |
+| Prestataires et comptes production | C.D.P | Déploiement | Ouvert |
+| Contenu légal et 6 catalogues de lancement | C.D.P | Mise en production | Ouvert |
 
 ## Protocole de déblocage
 

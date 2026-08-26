@@ -165,7 +165,10 @@ function createProduitsRouter() {
         return response.status(404).json({ error: "NOT_FOUND" });
       }
 
-      const { sku, size, color, priceAmount, currency, stockQuantity } = request.body ?? {};
+      // Devise validée : XAF uniquement (voir schema.prisma). Le champ reste
+      // acceptable en entrée pour rester explicite côté client, mais toute
+      // autre valeur est refusée plutôt que silencieusement acceptée.
+      const { sku, size, color, priceAmount, currency = "XAF", stockQuantity } = request.body ?? {};
       if (
         !sku ||
         !size ||
@@ -173,11 +176,12 @@ function createProduitsRouter() {
         !Number.isInteger(priceAmount) ||
         priceAmount < 0 ||
         !Number.isInteger(stockQuantity) ||
-        stockQuantity < 0 ||
-        typeof currency !== "string" ||
-        currency.length !== 3
+        stockQuantity < 0
       ) {
         return response.status(400).json({ error: "INVALID_INPUT" });
+      }
+      if (currency !== "XAF") {
+        return response.status(400).json({ error: "UNSUPPORTED_CURRENCY", allowed: ["XAF"] });
       }
 
       let variante;
@@ -189,7 +193,7 @@ function createProduitsRouter() {
             size,
             color,
             priceAmount,
-            currency: currency.toUpperCase(),
+            currency,
             stockQuantity,
             status: "ACTIVE",
           },

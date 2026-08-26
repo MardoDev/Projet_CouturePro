@@ -111,7 +111,7 @@ async function makeActiveProduitWithStock(adminCookie, stockQuantity = 5) {
       size: "M",
       color: "Bleu",
       priceAmount: 2000,
-      currency: "XXX",
+      currency: "XAF",
       stockQuantity,
     },
     cookie: adminCookie,

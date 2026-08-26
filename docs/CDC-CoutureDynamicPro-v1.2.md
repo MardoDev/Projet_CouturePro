@@ -14,7 +14,8 @@ C.D.P veut vendre ses créations en ligne, présenter ses collections sous forme
 - Charte : `#E8A898` rose pêche, `#C97D6A` pêche foncé, `#C9A46A` doré chaud, `#FDF6F0` ivoire crème, Georgia pour les titres et Calibri pour le corps.
 - Déploiement cible : front Vercel, API Railway, PostgreSQL managé, stockage média Cloudinary, domaine `cdp-couture.com`.
 - Durée cible : 5 à 6 mois, puis maintenance continue.
-- Hypothèses à valider : devise et fiscalité exactes, zones et tarifs de livraison, politique d'annulation/remboursement, conservation des données, responsable légal du traitement, modalités de validation des comptes internes, contrat et disponibilité des prestataires de paiement.
+- Devise validée par C.D.P le 26 août 2026 : XAF (franc CFA BEAC), seule devise en usage.
+- Hypothèses à valider : fiscalité exacte, zones et tarifs de livraison, politique d'annulation/remboursement, conservation des données, responsable légal du traitement, modalités de validation des comptes internes, contrat et disponibilité des prestataires de paiement.
 - Les fonctions V2 (fidélité, sur-mesure guidé, ventes flash, mobile React Native, recommandations IA, 3D) sont hors MVP et ne doivent pas être implémentées par défaut.
 
 **Compteurs de référence : 4 acteurs, 15 entités, 12 règles de gestion.**
@@ -122,9 +123,10 @@ CI/CD avec migrations contrôlées, environnements séparés, DNS/SSL, monitorin
 
 ## 10. Décisions attendues avant production
 
-Devise et taxes, zones de livraison, annulation/remboursement, validation des comptes internes, MFA, politique de conservation et suppression, consentements marketing, prestataires définitivement retenus, SLA support, contenu légal et six catalogues de lancement.
+Taxes et facturation (devise résolue, voir section 0), zones de livraison, annulation/remboursement, validation des comptes internes, MFA, politique de conservation et suppression, consentements marketing, prestataires définitivement retenus, SLA support, contenu légal et six catalogues de lancement.
 
 ## Historique
 
+- v1.2.1 — 26 août 2026 : devise validée par C.D.P = XAF (voir section 0 et docs/etude-merise.md v1.2.2). Taxes et facturation restent à valider séparément.
 - v1.2 — 21 août 2026 : enrichissement blueprint, règles RG1–RG12, RBAC, matrice de comptes, modèle de données et décisions à valider.
 - v1.1 — juin 2026 : CDC source fourni par C.D.P.
